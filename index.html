@@ -177,7 +177,6 @@
             <p>Ingresa la contrasena para votar:</p>
             <input type="password" class="password-input" id="passwordInput" placeholder="Enter password">
             <br>
-          <p id="ip-address">Fetching IP...</p>
             <button class="submit-password" onclick="checkPassword()">Votar!</button>
             <div class="error-message" id="passwordError">Contrasena incorrecta</div>
         </div>
@@ -215,7 +214,6 @@
     let nomineesData = {};
     let selectedNominees = {};
     let voterId = generateVoterId();
-    let userId = generateUserId();
 
     // Proxy function - MUST be global
     function getProxyImageUrl(url) {
@@ -364,9 +362,6 @@ async function submitVotes() {
         const submitBtn = document.getElementById('nextBtn');
         submitBtn.disabled = true;
         submitBtn.textContent = 'Enviando votos...';
-      
-        if (!userId) userId = await generateUserId(); // ensure IP   exists
-        if (!voterId) voterId = generateVoterId();
         
         // Check if all categories have votes
         const votedCategories = Object.keys(selectedNominees).length;
@@ -380,7 +375,6 @@ async function submitVotes() {
         // Create vote data
         const voteData = {
             voterId: voterId,
-            userId: userId,
             votes: selectedNominees
         };
 
@@ -501,7 +495,6 @@ function submitVotesJSONP(voteData) {
             const params = new URLSearchParams();
             params.append('callback', callbackName);
             params.append('voterId', voteData.voterId);
-            params.append('userId', voteData.userId);
             params.append('category', category);
             params.append('nomineeId', nomineeId);
             params.append('nomineeName', nominee.name);
@@ -530,33 +523,18 @@ function generateVoterId() {
     return voterId;
 }
 
-async function generateUserId() {
-    // Try to get existing user ID from localStorage
-    let userId = localStorage.getItem('awardsUserId');
-
-    if (!userId) {
-        try {
-            const response = await fetch("https://api.ipify.org?   format=json");
-            const data = await response.json();
-            userId = data.ip;
-            localStorage.setItem('awardsUserId', userId);
-            document.getElementById("ip-address").textContent =                   "Your IP: " + userId;
-        } catch (error) {
-            console.error("Error fetching IP address:", error);
-            document.getElementById("ip-address").textContent =                   "Unable to retrieve IP address.";
-        }
-    } else {
-        document.getElementById("ip-address").textContent = "Your             IP: " + userId;
-    }
-
-    return userId;
+function resetVoting() {
+    currentCategoryIndex = 0;
+    selectedNominees = {};
+    // Don't reset voterId - keep the same one
+    showCurrentQuestion();
+    updateProgress();
 }
 
     function resetVoting() {
         currentCategoryIndex = 0;
         selectedNominees = {};
         voterId = generateVoterId();
-        userId = await generateUserId();
         showCurrentQuestion();
         updateProgress();
     }
