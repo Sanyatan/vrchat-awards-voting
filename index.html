@@ -206,7 +206,7 @@
 
 <script>
     // Configuration
-    const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbwElD2h1lRzlo-WCewaumk4hVQp1zMyyr9iIZkI1uyUub16NmyI7TWHD47-iC5Ypz2V/exec';
+    const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbwXcRRlrbaFkMLfd0DWyzM7s0-VPtiZDwH9m4IeXpy4jWTSk6qAotWCoz0KpSfMK2g/exec';
     const VOTING_PASSWORD = 'CSS25';
     
     let categories = [];
@@ -340,202 +340,192 @@
 
     // Update progress bar
     function updateProgress() {
-    const progressFill = document.getElementById('progressFill');
-    const progressText = document.getElementById('progressText');
-    const prevBtn = document.getElementById('prevBtn');
-
-    const progress = (currentCategoryIndex + 1) / categories.length * 100;
-    progressFill.style.width = ${progress}%;
-    progressText.textContent = ${currentCategoryIndex + 1}/${categories.length};
-
-    prevBtn.disabled = currentCategoryIndex === 0;
-
-    // Update next button text for last question - PUT THIS PART HERE
-    const nextBtn = document.getElementById('nextBtn');
-    nextBtn.textContent = currentCategoryIndex === categories.length - 1 ? 'Enviar Votos' : 'Siguiente';
-    nextBtn.disabled = false; // Make sure it's enabled
-}
+        const progressFill = document.getElementById('progressFill');
+        const progressText = document.getElementById('progressText');
+        const prevBtn = document.getElementById('prevBtn');
+        
+        const progress = (currentCategoryIndex + 1) / categories.length * 100;
+        progressFill.style.width = `${progress}%`;
+        progressText.textContent = `${currentCategoryIndex + 1}/${categories.length}`;
+        
+        prevBtn.disabled = currentCategoryIndex === 0;
+        
+        // Update next button text for last question
+        const nextBtn = document.getElementById('nextBtn');
+        nextBtn.textContent = currentCategoryIndex === categories.length - 1 ? 'Enviar Votos' : 'Siguiente';
+        nextBtn.disabled = false; // Make sure it's enabled
+    }
 
     // Submit all votes
-async function submitVotes() {
-    try {
-        // Disable submit button immediately
-        const submitBtn = document.getElementById('nextBtn');
-        submitBtn.disabled = true;
-        submitBtn.textContent = 'Enviando votos...';
-        
-        // Check if all categories have votes
-        const votedCategories = Object.keys(selectedNominees).length;
-        if (votedCategories < categories.length) {
-            if (!confirm(`Has votado en ${votedCategories} de ${categories.length} categorías. ¿Enviar de todos modos?`)) {
-                resetSubmitButton();
-                return;
-            }
-        }
-
-        // Create vote data
-        const voteData = {
-            voterId: voterId,
-            votes: selectedNominees
-        };
-
-        // Show progress container
-        showProgressContainer(votedCategories);
-        
-        // Submit votes
-        await submitVotesJSONP(voteData);
-        
-    } catch (error) {
-        console.error('Error submitting votes:', error);
-        alert('Error enviando los votos. Por favor, intenta de nuevo.');
-        resetSubmitButton();
-    }
-}
-
-// Show progress container
-function showProgressContainer(totalVotes) {
-    const progressHTML = `
-        <div id="voteProgress" style="text-align: center; margin: 20px 0; padding: 20px; background: #2d2d2d; border-radius: 10px;">
-            <h3>📨 Enviando tus votos...</h3>
-            <div style="margin: 15px 0;">
-                <div style="width: 100%; background: #444; border-radius: 10px; height: 20px;">
-                    <div id="progressBar" style="width: 0%; height: 100%; background: #4CAF50; border-radius: 10px; transition: width 0.3s;"></div>
-                </div>
-                <div id="progressText" style="margin-top: 10px; font-size: 14px; color: #ccc;">
-                    0/${totalVotes} votos enviados
-                </div>
-            </div>
-            <div id="progressDetails" style="font-size: 12px; color: #888; margin-top: 10px;"></div>
-        </div>
-    `;
-    
-    // Insert progress after the question
-    const questionContainer = document.querySelector('.question-container');
-    questionContainer.insertAdjacentHTML('afterend', progressHTML);
-}
-
-// Update progress
-function updateVoteProgress(current, total, category) {
-    const progressBar = document.getElementById('progressBar');
-    const progressText = document.getElementById('progressText');
-    const progressDetails = document.getElementById('progressDetails');
-    
-    const percentage = (current / total) * 100;
-    progressBar.style.width = percentage + '%';
-    progressText.textContent = `${current}/${total} votos enviados`;
-    progressDetails.textContent = `Último voto: ${category}`;
-}
-
-// Hide progress and show success
-function hideProgressContainer() {
-    const progressContainer = document.getElementById('voteProgress');
-    if (progressContainer) {
-        progressContainer.remove();
-    }
-}
-
-// Reset submit button
-function resetSubmitButton() {
-    const submitBtn = document.getElementById('nextBtn');
-    submitBtn.disabled = false;
-    submitBtn.textContent = 'Enviar Votos';
-}
-
-
-// Submit votes using JSONP
-// Submit votes sequentially to avoid overwriting
-function submitVotesJSONP(voteData) {
-    return new Promise((resolve, reject) => {
-        const votes = Object.entries(voteData.votes);
-        let currentVoteIndex = 0;
-        let successfulVotes = 0;
-        const totalVotes = votes.length;
-        
-        function submitNextVote() {
-            if (currentVoteIndex >= votes.length) {
-                // All votes submitted
-                hideProgressContainer();
-                
-                if (successfulVotes === totalVotes) {
-                    alert('✅ ¡Gracias por votar! Tus ' + totalVotes + ' votos han sido registrados correctamente.');
-                } else {
-                    alert('⚠️ Se registraron ' + successfulVotes + ' de ' + totalVotes + ' votos. Algunos votos no se pudieron guardar.');
+    async function submitVotes() {
+        try {
+            // Disable submit button immediately
+            const submitBtn = document.getElementById('nextBtn');
+            submitBtn.disabled = true;
+            submitBtn.textContent = 'Enviando votos...';
+            
+            // Check if all categories have votes
+            const votedCategories = Object.keys(selectedNominees).length;
+            if (votedCategories < categories.length) {
+                if (!confirm(`Has votado en ${votedCategories} de ${categories.length} categorías. ¿Enviar de todos modos?`)) {
+                    resetSubmitButton();
+                    return;
                 }
-                
-                resetSubmitButton();
-                resetVoting();
-                resolve({success: true, votesRecorded: successfulVotes});
-                return;
             }
-            
-            const [category, nomineeId] = votes[currentVoteIndex];
-            const nominee = nomineesData[category].find(n => n.id === nomineeId);
-            
-            // Update progress
-            updateVoteProgress(currentVoteIndex, totalVotes, category);
-            
-            const callbackName = 'handleVoteResponse_' + Date.now() + '_' + currentVoteIndex;
-            window[callbackName] = function(response) {
-                console.log('Vote response for', category, ':', response);
-                
-                if (response.success) {
-                    successfulVotes++;
-                } else {
-                    console.error('Vote failed for', category, ':', response.error);
-                }
-                
-                // Clean up callback
-                delete window[callbackName];
-                
-                // Submit next vote after a short delay
-                currentVoteIndex++;
-                setTimeout(submitNextVote, 200); // 200ms delay between votes
+
+            // Create vote data
+            const voteData = {
+                voterId: voterId,
+                votes: selectedNominees
             };
 
-            // Submit vote via GET parameters
-            const params = new URLSearchParams();
-            params.append('callback', callbackName);
-            params.append('voterId', voteData.voterId);
-            params.append('category', category);
-            params.append('nomineeId', nomineeId);
-            params.append('nomineeName', nominee.name);
-
-            const script = document.createElement('script');
-            script.src = SCRIPT_URL + '?' + params.toString();
-            document.head.appendChild(script);
+            // Show progress container
+            showProgressContainer(votedCategories);
+            
+            // Submit votes
+            await submitVotesJSONP(voteData);
+            
+        } catch (error) {
+            console.error('Error submitting votes:', error);
+            alert('Error enviando los votos. Por favor, intenta de nuevo.');
+            resetSubmitButton();
         }
-        
-        // Start the sequential voting
-        submitNextVote();
-    });
-}
-
-    // Utility functions
-function generateVoterId() {
-    // Try to get existing voter ID from localStorage
-    let voterId = localStorage.getItem('awardsVoterId');
-
-    if (!voterId) {
-        // Generate new ID and save it
-        voterId = 'voter' + Math.random().toString(36).substr(2, 12) + '' + Date.now();
-        localStorage.setItem('awardsVoterId', voterId);
     }
 
-    return voterId;
-}
+    // Show progress container
+    function showProgressContainer(totalVotes) {
+        const progressHTML = `
+            <div id="voteProgress" style="text-align: center; margin: 20px 0; padding: 20px; background: #2d2d2d; border-radius: 10px;">
+                <h3>📨 Enviando tus votos...</h3>
+                <div style="margin: 15px 0;">
+                    <div style="width: 100%; background: #444; border-radius: 10px; height: 20px;">
+                        <div id="progressBar" style="width: 0%; height: 100%; background: #4CAF50; border-radius: 10px; transition: width 0.3s;"></div>
+                    </div>
+                    <div id="progressText" style="margin-top: 10px; font-size: 14px; color: #ccc;">
+                        0/${totalVotes} votos enviados
+                    </div>
+                </div>
+                <div id="progressDetails" style="font-size: 12px; color: #888; margin-top: 10px;"></div>
+            </div>
+        `;
+        
+        // Insert progress after the question
+        const questionContainer = document.querySelector('.question-container');
+        questionContainer.insertAdjacentHTML('afterend', progressHTML);
+    }
 
-function resetVoting() {
-    currentCategoryIndex = 0;
-    selectedNominees = {};
-    // Don't reset voterId - keep the same one
-    showCurrentQuestion();
-    updateProgress();
-}
+    // Update progress
+    function updateVoteProgress(current, total, category) {
+        const progressBar = document.getElementById('progressBar');
+        const progressText = document.getElementById('progressText');
+        const progressDetails = document.getElementById('progressDetails');
+        
+        const percentage = (current / total) * 100;
+        progressBar.style.width = percentage + '%';
+        progressText.textContent = `${current}/${total} votos enviados`;
+        progressDetails.textContent = `Último voto: ${category}`;
+    }
+
+    // Hide progress and show success
+    function hideProgressContainer() {
+        const progressContainer = document.getElementById('voteProgress');
+        if (progressContainer) {
+            progressContainer.remove();
+        }
+    }
+
+    // Reset submit button
+    function resetSubmitButton() {
+        const submitBtn = document.getElementById('nextBtn');
+        submitBtn.disabled = false;
+        submitBtn.textContent = 'Enviar Votos';
+    }
+
+    // Submit votes sequentially with progress
+    function submitVotesJSONP(voteData) {
+        return new Promise((resolve, reject) => {
+            const votes = Object.entries(voteData.votes);
+            let currentVoteIndex = 0;
+            let successfulVotes = 0;
+            const totalVotes = votes.length;
+            
+            function submitNextVote() {
+                if (currentVoteIndex >= votes.length) {
+                    // All votes submitted
+                    hideProgressContainer();
+                    
+                    if (successfulVotes === totalVotes) {
+                        alert('✅ ¡Gracias por votar! Tus ' + totalVotes + ' votos han sido registrados correctamente.');
+                    } else {
+                        alert('⚠️ Se registraron ' + successfulVotes + ' de ' + totalVotes + ' votos. Algunos votos no se pudieron guardar.');
+                    }
+                    
+                    resetSubmitButton();
+                    resetVoting();
+                    resolve({success: true, votesRecorded: successfulVotes});
+                    return;
+                }
+                
+                const [category, nomineeId] = votes[currentVoteIndex];
+                const nominee = nomineesData[category].find(n => n.id === nomineeId);
+                
+                // Update progress
+                updateVoteProgress(currentVoteIndex, totalVotes, category);
+                
+                const callbackName = 'handleVoteResponse_' + Date.now() + '_' + currentVoteIndex;
+                window[callbackName] = function(response) {
+                    console.log('Vote response for', category, ':', response);
+                    
+                    if (response.success) {
+                        successfulVotes++;
+                    } else {
+                        console.error('Vote failed for', category, ':', response.error);
+                    }
+                    
+                    // Clean up callback
+                    delete window[callbackName];
+                    
+                    // Submit next vote after a short delay
+                    currentVoteIndex++;
+                    setTimeout(submitNextVote, 200); // 200ms delay between votes
+                };
+
+                // Submit vote via GET parameters
+                const params = new URLSearchParams();
+                params.append('callback', callbackName);
+                params.append('voterId', voteData.voterId);
+                params.append('category', category);
+                params.append('nomineeId', nomineeId);
+                params.append('nomineeName', nominee.name);
+
+                const script = document.createElement('script');
+                script.src = SCRIPT_URL + '?' + params.toString();
+                document.head.appendChild(script);
+            }
+            
+            // Start the sequential voting
+            submitNextVote();
+        });
+    }
+
+    // Utility functions
+    function generateVoterId() {
+        // Try to get existing voter ID from localStorage
+        let voterId = localStorage.getItem('awardsVoterId');
+        
+        if (!voterId) {
+            // Generate new ID and save it
+            voterId = 'voter_' + Math.random().toString(36).substr(2, 12) + '_' + Date.now();
+            localStorage.setItem('awardsVoterId', voterId);
+        }
+        
+        return voterId;
+    }
 
     function resetVoting() {
         currentCategoryIndex = 0;
         selectedNominees = {};
-        voterId = generateVoterId();
+        // Don't reset voterId - keep the same one
         showCurrentQuestion();
         updateProgress();
     }
