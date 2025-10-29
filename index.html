@@ -380,7 +380,7 @@ async function submitVotes() {
         // Create vote data
         const voteData = {
             voterId: voterId,
-            userID: userID,
+            userId: userId,
             votes: selectedNominees
         };
 
@@ -501,7 +501,7 @@ function submitVotesJSONP(voteData) {
             const params = new URLSearchParams();
             params.append('callback', callbackName);
             params.append('voterId', voteData.voterId);
-            params.append('userID', voteData.userID);
+            params.append('userId', voteData.userId);
             params.append('category', category);
             params.append('nomineeId', nomineeId);
             params.append('nomineeName', nominee.name);
@@ -556,7 +556,7 @@ async function generateUserId() {
         currentCategoryIndex = 0;
         selectedNominees = {};
         voterId = generateVoterId();
-        userId = generateUserId();
+        userId = await generateUserId();
         showCurrentQuestion();
         updateProgress();
     }
