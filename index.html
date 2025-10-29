@@ -1,0 +1,559 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>VRC Calamity + Social Spanish Awards 2025</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background: #1a1a1a;
+            color: white;
+        }
+        
+        /* Password screen styles */
+        .password-screen {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.9);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+        }
+        
+        .password-container {
+            background: #2d2d2d;
+            padding: 40px;
+            border-radius: 15px;
+            text-align: center;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+        }
+        
+        .password-input {
+            padding: 15px;
+            font-size: 18px;
+            border: none;
+            border-radius: 8px;
+            margin: 20px 0;
+            width: 250px;
+            text-align: center;
+        }
+        
+        .submit-password {
+            padding: 15px 30px;
+            background: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 16px;
+        }
+        
+        .submit-password:hover {
+            background: #45a049;
+        }
+        
+        .error-message {
+            color: #ff4444;
+            margin-top: 10px;
+            display: none;
+        }
+
+        /* Voting app styles */
+        .voting-app {
+            display: none;
+        }
+        
+        .question-container {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        
+        .current-question {
+            font-size: 24px;
+            margin-bottom: 20px;
+        }
+        
+        .image-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 15px;
+            margin-bottom: 30px;
+        }
+        
+        .nominee-card {
+            background: #2d2d2d;
+            border-radius: 10px;
+            padding: 15px;
+            cursor: pointer;
+            transition: transform 0.2s, background 0.2s;
+        }
+        
+        .nominee-card:hover {
+            transform: translateY(-5px);
+            background: #3d3d3d;
+        }
+        
+        .nominee-card.selected {
+            background: #4CAF50;
+        }
+        
+        .nominee-image {
+            width: 100px;
+            height: 100px;
+            object-fit: cover;
+            border-radius: 50%;
+            margin-bottom: 10px;
+        }
+        
+        .nominee-name {
+            font-size: 14px;
+            word-wrap: break-word;
+        }
+        
+        .progress-bar {
+            width: 100%;
+            height: 10px;
+            background: #444;
+            border-radius: 5px;
+            margin: 20px 0;
+        }
+        
+        .progress-fill {
+            height: 100%;
+            background: #4CAF50;
+            border-radius: 5px;
+            transition: width 0.3s;
+        }
+        
+        .navigation {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 20px;
+        }
+        
+        button {
+            padding: 10px 20px;
+            background: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        
+        button:disabled {
+            background: #666;
+            cursor: not-allowed;
+        }
+        
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.8);
+            justify-content: center;
+            align-items: center;
+        }
+        
+        .modal-content {
+            max-width: 90%;
+            max-height: 90%;
+        }
+    </style>
+</head>
+<body>
+    <!-- Password Screen -->
+    <div class="password-screen" id="passwordScreen">
+        <div class="password-container">
+            <h2>VRC Calamity + Social Spanish Awards 2025</h2>
+            <p>Ingresa la contrasena para votar:</p>
+            <input type="password" class="password-input" id="passwordInput" placeholder="Enter password">
+            <br>
+            <button class="submit-password" onclick="checkPassword()">Votar!</button>
+            <div class="error-message" id="passwordError">Contrasena incorrecta</div>
+        </div>
+    </div>
+
+    <!-- Voting App (Hidden until password is correct) -->
+    <div class="voting-app" id="votingApp">
+        <div class="question-container">
+            <div class="current-question" id="currentQuestion">Loading...</div>
+            <div class="progress-bar">
+                <div class="progress-fill" id="progressFill"></div>
+            </div>
+            <div class="progress-text" id="progressText">0/0</div>
+        </div>
+
+        <div class="image-grid" id="imageGrid"></div>
+
+        <div class="navigation">
+            <button id="prevBtn" onclick="previousQuestion()" disabled>Anterior</button>
+            <button id="nextBtn" onclick="nextQuestion()" disabled>Siguiente</button>
+        </div>
+
+        <div class="modal" id="imageModal" onclick="closeModal()">
+            <img class="modal-content" id="modalImage">
+        </div>
+    </div>
+
+<script>
+    // Configuration
+    const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbwElD2h1lRzlo-WCewaumk4hVQp1zMyyr9iIZkI1uyUub16NmyI7TWHD47-iC5Ypz2V/exec';
+    const VOTING_PASSWORD = 'CSS25';
+    
+    let categories = [];
+    let currentCategoryIndex = 0;
+    let nomineesData = {};
+    let selectedNominees = {};
+    let voterId = generateVoterId();
+
+    // Proxy function - MUST be global
+    function getProxyImageUrl(url) {
+        return 'https://corsproxy.io/?' + encodeURIComponent(url);
+    }
+
+    // JSONP callback function - MUST be global
+    window.handleNomineesData = function(data) {
+        console.log('Loaded data via JSONP:', data);
+        
+        if (!data.success) {
+            alert('Error cargando los datos: ' + (data.error || 'Error desconocido'));
+            return;
+        }
+        
+        categories = data.categoryList;
+        nomineesData = data.categories;
+        
+        console.log('Categories:', categories);
+        console.log('Nominees data:', nomineesData);
+        
+        document.getElementById('nextBtn').disabled = false;
+        showCurrentQuestion();
+        updateProgress();
+    }
+
+    // Password check
+    function checkPassword() {
+        const passwordInput = document.getElementById('passwordInput');
+        const errorMessage = document.getElementById('passwordError');
+        const passwordScreen = document.getElementById('passwordScreen');
+        const votingApp = document.getElementById('votingApp');
+        
+        if (passwordInput.value === VOTING_PASSWORD) {
+            passwordScreen.style.display = 'none';
+            votingApp.style.display = 'block';
+            init();
+        } else {
+            errorMessage.style.display = 'block';
+            passwordInput.value = '';
+            passwordInput.focus();
+        }
+    }
+
+    // Allow Enter key to submit password
+    document.getElementById('passwordInput').addEventListener('keypress', function(e) {
+        if (e.key === 'Enter') {
+            checkPassword();
+        }
+    });
+
+    // Initialize the app using JSONP
+    function init() {
+        loadNominees();
+    }
+
+    // Load nominees using JSONP (no CORS issues)
+    function loadNominees() {
+        const script = document.createElement('script');
+        script.src = SCRIPT_URL + '?callback=handleNomineesData';
+        document.head.appendChild(script);
+    }
+
+    // Show current question and nominees
+    function showCurrentQuestion() {
+        const currentCategory = categories[currentCategoryIndex];
+        console.log('Showing category:', currentCategory);
+        document.getElementById('currentQuestion').textContent = currentCategory;
+        
+        const imageGrid = document.getElementById('imageGrid');
+        imageGrid.innerHTML = '';
+        
+        const categoryNominees = nomineesData[currentCategory];
+        console.log('Nominees for this category:', categoryNominees);
+        
+        if (!categoryNominees || categoryNominees.length === 0) {
+            imageGrid.innerHTML = '<p>No hay nominados en esta categoría.</p>';
+            return;
+        }
+        
+        categoryNominees.forEach(nominee => {
+            const card = document.createElement('div');
+            card.className = 'nominee-card';
+            if (selectedNominees[currentCategory] === nominee.id) {
+                card.classList.add('selected');
+            }
+            card.onclick = () => selectNominee(nominee);
+            
+            card.innerHTML = `
+                <img src="${getProxyImageUrl(nominee.picture)}" alt="${nominee.name}" class="nominee-image" 
+                     onerror="console.error('Image failed to load:', '${nominee.name}'); this.src='data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTAwIiBoZWlnaHQ9IjEwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMTAwIiBoZWlnaHQ9IjEwMCIgZmlsbD0iIzMzMyIvPjx0ZXh0IHg9IjUwIiB5PSI1MCIgZm9udC1mYW1pbHk9IkFyaWFsIiBmb250LXNpemU9IjEwIiBmaWxsPSIjNjY2IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBkeT0iLjNlbSI+U2luIEltYWdlbjwvdGV4dD48L3N2Zz4='">
+                <div class="nominee-name">${nominee.name}</div>
+            `;
+            
+            imageGrid.appendChild(card);
+        });
+    }
+
+    // Select a nominee
+    function selectNominee(nominee) {
+        const currentCategory = categories[currentCategoryIndex];
+        selectedNominees[currentCategory] = nominee.id;
+        showCurrentQuestion();
+    }
+
+    // Navigation
+    function nextQuestion() {
+        if (currentCategoryIndex < categories.length - 1) {
+            currentCategoryIndex++;
+            showCurrentQuestion();
+            updateProgress();
+        } else {
+            submitVotes();
+        }
+    }
+
+    function previousQuestion() {
+        if (currentCategoryIndex > 0) {
+            currentCategoryIndex--;
+            showCurrentQuestion();
+            updateProgress();
+        }
+    }
+
+    // Update progress bar
+    function updateProgress() {
+    const progressFill = document.getElementById('progressFill');
+    const progressText = document.getElementById('progressText');
+    const prevBtn = document.getElementById('prevBtn');
+
+    const progress = (currentCategoryIndex + 1) / categories.length * 100;
+    progressFill.style.width = ${progress}%;
+    progressText.textContent = ${currentCategoryIndex + 1}/${categories.length};
+
+    prevBtn.disabled = currentCategoryIndex === 0;
+
+    // Update next button text for last question - PUT THIS PART HERE
+    const nextBtn = document.getElementById('nextBtn');
+    nextBtn.textContent = currentCategoryIndex === categories.length - 1 ? 'Enviar Votos' : 'Siguiente';
+    nextBtn.disabled = false; // Make sure it's enabled
+}
+
+    // Submit all votes
+async function submitVotes() {
+    try {
+        // Disable submit button immediately
+        const submitBtn = document.getElementById('nextBtn');
+        submitBtn.disabled = true;
+        submitBtn.textContent = 'Enviando votos...';
+        
+        // Check if all categories have votes
+        const votedCategories = Object.keys(selectedNominees).length;
+        if (votedCategories < categories.length) {
+            if (!confirm(`Has votado en ${votedCategories} de ${categories.length} categorías. ¿Enviar de todos modos?`)) {
+                resetSubmitButton();
+                return;
+            }
+        }
+
+        // Create vote data
+        const voteData = {
+            voterId: voterId,
+            votes: selectedNominees
+        };
+
+        // Show progress container
+        showProgressContainer(votedCategories);
+        
+        // Submit votes
+        await submitVotesJSONP(voteData);
+        
+    } catch (error) {
+        console.error('Error submitting votes:', error);
+        alert('Error enviando los votos. Por favor, intenta de nuevo.');
+        resetSubmitButton();
+    }
+}
+
+// Show progress container
+function showProgressContainer(totalVotes) {
+    const progressHTML = `
+        <div id="voteProgress" style="text-align: center; margin: 20px 0; padding: 20px; background: #2d2d2d; border-radius: 10px;">
+            <h3>📨 Enviando tus votos...</h3>
+            <div style="margin: 15px 0;">
+                <div style="width: 100%; background: #444; border-radius: 10px; height: 20px;">
+                    <div id="progressBar" style="width: 0%; height: 100%; background: #4CAF50; border-radius: 10px; transition: width 0.3s;"></div>
+                </div>
+                <div id="progressText" style="margin-top: 10px; font-size: 14px; color: #ccc;">
+                    0/${totalVotes} votos enviados
+                </div>
+            </div>
+            <div id="progressDetails" style="font-size: 12px; color: #888; margin-top: 10px;"></div>
+        </div>
+    `;
+    
+    // Insert progress after the question
+    const questionContainer = document.querySelector('.question-container');
+    questionContainer.insertAdjacentHTML('afterend', progressHTML);
+}
+
+// Update progress
+function updateVoteProgress(current, total, category) {
+    const progressBar = document.getElementById('progressBar');
+    const progressText = document.getElementById('progressText');
+    const progressDetails = document.getElementById('progressDetails');
+    
+    const percentage = (current / total) * 100;
+    progressBar.style.width = percentage + '%';
+    progressText.textContent = `${current}/${total} votos enviados`;
+    progressDetails.textContent = `Último voto: ${category}`;
+}
+
+// Hide progress and show success
+function hideProgressContainer() {
+    const progressContainer = document.getElementById('voteProgress');
+    if (progressContainer) {
+        progressContainer.remove();
+    }
+}
+
+// Reset submit button
+function resetSubmitButton() {
+    const submitBtn = document.getElementById('nextBtn');
+    submitBtn.disabled = false;
+    submitBtn.textContent = 'Enviar Votos';
+}
+
+
+// Submit votes using JSONP
+// Submit votes sequentially to avoid overwriting
+function submitVotesJSONP(voteData) {
+    return new Promise((resolve, reject) => {
+        const votes = Object.entries(voteData.votes);
+        let currentVoteIndex = 0;
+        let successfulVotes = 0;
+        const totalVotes = votes.length;
+        
+        function submitNextVote() {
+            if (currentVoteIndex >= votes.length) {
+                // All votes submitted
+                hideProgressContainer();
+                
+                if (successfulVotes === totalVotes) {
+                    alert('✅ ¡Gracias por votar! Tus ' + totalVotes + ' votos han sido registrados correctamente.');
+                } else {
+                    alert('⚠️ Se registraron ' + successfulVotes + ' de ' + totalVotes + ' votos. Algunos votos no se pudieron guardar.');
+                }
+                
+                resetSubmitButton();
+                resetVoting();
+                resolve({success: true, votesRecorded: successfulVotes});
+                return;
+            }
+            
+            const [category, nomineeId] = votes[currentVoteIndex];
+            const nominee = nomineesData[category].find(n => n.id === nomineeId);
+            
+            // Update progress
+            updateVoteProgress(currentVoteIndex, totalVotes, category);
+            
+            const callbackName = 'handleVoteResponse_' + Date.now() + '_' + currentVoteIndex;
+            window[callbackName] = function(response) {
+                console.log('Vote response for', category, ':', response);
+                
+                if (response.success) {
+                    successfulVotes++;
+                } else {
+                    console.error('Vote failed for', category, ':', response.error);
+                }
+                
+                // Clean up callback
+                delete window[callbackName];
+                
+                // Submit next vote after a short delay
+                currentVoteIndex++;
+                setTimeout(submitNextVote, 200); // 200ms delay between votes
+            };
+
+            // Submit vote via GET parameters
+            const params = new URLSearchParams();
+            params.append('callback', callbackName);
+            params.append('voterId', voteData.voterId);
+            params.append('category', category);
+            params.append('nomineeId', nomineeId);
+            params.append('nomineeName', nominee.name);
+
+            const script = document.createElement('script');
+            script.src = SCRIPT_URL + '?' + params.toString();
+            document.head.appendChild(script);
+        }
+        
+        // Start the sequential voting
+        submitNextVote();
+    });
+}
+
+    // Utility functions
+function generateVoterId() {
+    // Try to get existing voter ID from localStorage
+    let voterId = localStorage.getItem('awardsVoterId');
+
+    if (!voterId) {
+        // Generate new ID and save it
+        voterId = 'voter' + Math.random().toString(36).substr(2, 12) + '' + Date.now();
+        localStorage.setItem('awardsVoterId', voterId);
+    }
+
+    return voterId;
+}
+
+function resetVoting() {
+    currentCategoryIndex = 0;
+    selectedNominees = {};
+    // Don't reset voterId - keep the same one
+    showCurrentQuestion();
+    updateProgress();
+}
+
+    function resetVoting() {
+        currentCategoryIndex = 0;
+        selectedNominees = {};
+        voterId = generateVoterId();
+        showCurrentQuestion();
+        updateProgress();
+    }
+
+    // Image modal functions
+    function openModal(imgSrc) {
+        document.getElementById('modalImage').src = imgSrc;
+        document.getElementById('imageModal').style.display = 'flex';
+    }
+
+    function closeModal() {
+        document.getElementById('imageModal').style.display = 'none';
+    }
+
+    // Add click to enlarge functionality
+    document.addEventListener('click', function(e) {
+        if (e.target.classList.contains('nominee-image')) {
+            openModal(e.target.src);
+        }
+    });
+</script>
